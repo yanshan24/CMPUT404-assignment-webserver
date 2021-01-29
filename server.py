@@ -50,7 +50,8 @@ class MyWebServer(socketserver.BaseRequestHandler):
         # if the url requested is a directory
         elif os.path.isdir(local_path + url):
             if url[-1] != '/': # the path is wrong
-                self.request.sendall(bytearray(f"HTTP/1.1 301 Moved Permanently\r\nLocation:{url+'/'}\r\n\r\n301 Moved Permanently",'utf-8'))
+                server_url = self.server.server_address # server url
+                self.request.sendall(bytearray(f"HTTP/1.1 301 Moved Permanently\r\nLocation:{server_url+url+'/'}\r\n\r\n301 Moved Permanently",'utf-8'))
             else:
                 self.sendOK(local_path, url, is_Dir = True)
 
