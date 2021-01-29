@@ -32,7 +32,6 @@ class MyWebServer(socketserver.BaseRequestHandler):
     def handle(self):
         self.data = self.request.recv(1024).strip()
         method, url = requestParser(self.data)
-        #print(f"Got a request of: method: %s, url:%s\n" % method, url)
         #self.request.sendall(bytearray("OK",'utf-8'))
 
         current_dir = os.path.abspath(os.getcwd())
@@ -50,9 +49,11 @@ class MyWebServer(socketserver.BaseRequestHandler):
         # if the url requested is a directory
         elif os.path.isdir(local_path + url):
             if url[-1] != '/': # the path is wrong
-                server_url = self.server.server_address # server url
-                location = tuple(server_url) + url + '/'
+                address = self.server.server_address
+                server_url = "http://" + address[0]+ ":" +str(address[1])
+                location = server_url + url + "/"
                 self.request.sendall(bytearray(f"HTTP/1.1 301 Moved Permanently\r\nLocation:{location}\r\n\r\n301 Moved Permanently",'utf-8'))
+                return
             else:
                 self.sendOK(local_path, url, is_Dir = True)
 
@@ -63,16 +64,15 @@ class MyWebServer(socketserver.BaseRequestHandler):
 
     def sendOK(self, local_path, url, is_Dir):
         status = 'HTTP/1.1 200 OK\r\n'
+        file_path = local_path + url
+
         if is_Dir: # return index.html from directories
-            file_path = local_path + url + 'index.html'
-            header = 'Content-Type: text/html\r\n'
+            file_path += 'index.html'
             with open(file_path, 'r') as f:
                 content = f.read()
-            self.request.sendall(bytearray(f"{status}{header}\r\n{content}",'utf-8'))
-            return
+            header = 'Content-Type: text/html\r\n'
 
         else:
-            file_path = local_path + url
             with open(file_path, 'r') as f:
                 content = f.read()
             if 'css' in url.split('/')[-1]:
@@ -83,8 +83,8 @@ class MyWebServer(socketserver.BaseRequestHandler):
                 self.request.sendall(bytearray(f"HTTP/1.1 404 Not Found\r\n\r\n404 Not Found",'utf-8'))
                 return
 
-            self.request.sendall(bytearray(f"{status}{header}\r\n{content}",'utf-8'))
-            return
+        self.request.sendall(bytearray(f"{status}{header}\r\n{content}",'utf-8'))
+        return
 
 def requestParser(data):
     data_ = data.decode().splitlines()
